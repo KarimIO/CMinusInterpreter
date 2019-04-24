@@ -1,0 +1,9 @@
+int x;
+int z;
+let x = 2;
+float y;
+write "Please Input a Value: ";
+read y;
+write "Final Value:\n\t", y;
+while (x < 5)
+	let z = x + 1;
