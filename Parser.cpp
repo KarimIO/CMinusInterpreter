@@ -429,7 +429,7 @@ bool Parser::evaluateExpression(DataType exp_typ, DataValue val) {
 		semanticError("Expressions in If conditions must be of type int", line);
 	}
 
-	return (val.i > 0);
+	return (val.i != 0);
 }
 
 void Parser::expression(DataType &exp_typ, DataValue &val)
