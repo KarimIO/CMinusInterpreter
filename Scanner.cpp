@@ -90,9 +90,12 @@ Token Scanner::readToken() {
 		++curoffset_;
 		return Token::PlusOp;
 	case '-':
-		++current_;
-		++curoffset_;
-		return Token::MinusOp;
+		if ((current_ + 1) == end_ || !(isdigit(*(current_ + 1)) || *(current_ + 1) == '.')) {
+			++current_;
+			++curoffset_;
+			return Token::MinusOp;
+		}
+		break;
 	case '*':
 		++current_;
 		++curoffset_;
@@ -168,7 +171,7 @@ Token Scanner::readToken() {
 		return Token::DivideOp;
 	}
 
-	if (c == '.' || (c >= '0' && c <= '9')) {
+	if (c == '-' || c == '.' || (c >= '0' && c <= '9')) {
 		return readNumber();
 	}
 
@@ -288,6 +291,15 @@ Token Scanner::readNumber() {
 	unsigned divide = 1;
 	number_ = 0.0;
 
+	bool neg;
+	if (*current_ == '-') {
+		neg = true;
+		++current_;
+	}
+	else {
+		neg = false;
+	}
+
 	while (current_ != end_) {
 		char c = *current_;
 		if (c >= '0' && c <= '9') {
@@ -313,6 +325,7 @@ Token Scanner::readNumber() {
 
 	if (digit) {
 		number_ /= divide;
+		number_ = neg ? -number_ : number_;
 		return point ? Token::Float : Token::Int;
 	}
 

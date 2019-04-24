@@ -38,6 +38,9 @@ private:
 	void readStmt(bool exec);
 	void writeVar(bool exec);
 	void writeStmt(bool exec);
+#ifdef HAS_COMPOUND
+	void compoundStmt(bool exec);
+#endif
 	/*void funDeclaration();
 	void params();
 	void paramList();

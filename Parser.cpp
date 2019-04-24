@@ -52,6 +52,11 @@ string getTokenName(Token tok) {
 	case FloatSpec:
 		return "float";
 
+	case WriteWord:
+		return "write";
+	case ReadWord:
+		return "read";
+
 	case IfWord:
 		return "if";
 	case ElseWord:
@@ -173,9 +178,9 @@ void Parser::parse()
 	num_errors_ = 0;
 	program();
 	if (num_errors_ == 0) {
-		OUTP << "\n\n===========================\n\n";
+		OUTP << "\n\n===========================\nParsing Successful - Symbol Table:\n---------------------------\n";
 		symboltable_.Print(OUTP);
-		OUTP << "Parsing Successful" << std::endl;
+		OUTP << "---------------------------\n";
 	}
 
 #ifndef PROJ_DEBUG
@@ -230,12 +235,21 @@ DataType Parser::typeSpecifier()
 		error("\'int\' or \'float\'");
 }
 
+#ifdef HAS_COMPOUND
+void Parser::compoundStmt(bool exec)
+{
+	match(StartCurlyBracket);
+	stmtList(exec);
+	match(EndCurlyBracket);
+}
+#endif
+
 void Parser::stmtList(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
+	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 	{
 		stmt(exec);
-		while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
+		while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 		{
 			stmt(exec);
 		}
@@ -248,6 +262,12 @@ void Parser::stmt(bool exec)
 	{
 		expressionStmt(exec);
 	}
+#ifdef HAS_COMPOUND
+	else if (tokenlist_[i].token_ == StartCurlyBracket)
+	{
+		compoundStmt(exec);
+	}
+#endif
 	else if (tokenlist_[i].token_ == IfWord)
 	{
 		selectionStmt(exec);
@@ -671,9 +691,9 @@ void Parser::term(DataType &exp_typ, DataValue &val)
 		}
 		else {
 			if (isMul)
-				left_val.f = left_val.i * right_val.i;
+				left_val.i = left_val.i * right_val.i;
 			else
-				left_val.f = left_val.i / right_val.i;
+				left_val.i = left_val.i / right_val.i;
 		}
 	};
 	exp_typ = left_type;
