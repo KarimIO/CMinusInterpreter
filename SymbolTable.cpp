@@ -1,11 +1,11 @@
 #include "SymbolTable.h"
 #include <iostream>
 
-void SymbolTable::Add(std::string name, ST_Type type, unsigned int line) {
+void SymbolTable::Add(std::string name, DataType type, unsigned int line) {
 	entries_[name] = SymbolTableValue();
 	SymbolTableValue &s = entries_[name];
 	s.type = type;
-	if (type == ST_Float)
+	if (type == DT_Float)
 		s.value.f = 0.0;
 	else
 		s.value.i = 0;
@@ -16,7 +16,7 @@ void SymbolTable::Print(std::ostream &o) {
 	for (SymbolTableEntry::iterator it = entries_.begin(); it != entries_.end(); ++it) {
 		SymbolTableValue &s = it->second;
 		o << it->first << " (" << s.line;
-		if (s.type == ST_Float)
+		if (s.type == DT_Float)
 			o << ") [float]: " << s.value.f << std::endl;
 		else
 			o << ") [ int ]: " << s.value.i << std::endl;
@@ -28,7 +28,7 @@ bool SymbolTable::CheckExists(std::string name) {
 }
 
 bool SymbolTable::SetFloat(std::string name, double f) {
-	if (CheckExists(name) && entries_[name].type == ST_Float) {
+	if (CheckExists(name) && entries_[name].type == DT_Float) {
 		entries_[name].used = true;
 		entries_[name].value.f = f;
 
@@ -39,7 +39,7 @@ bool SymbolTable::SetFloat(std::string name, double f) {
 }
 
 bool SymbolTable::SetInt(std::string name, long int i) {
-	if (CheckExists(name) && entries_[name].type == ST_Int) {
+	if (CheckExists(name) && entries_[name].type == DT_Int) {
 		entries_[name].used = true;
 		entries_[name].value.i = i;
 
@@ -50,7 +50,7 @@ bool SymbolTable::SetInt(std::string name, long int i) {
 }
 
 bool SymbolTable::GetFloat(std::string name, double &f) {
-	if (CheckExists(name) && entries_[name].type == ST_Float) {
+	if (CheckExists(name) && entries_[name].type == DT_Float) {
 		f = entries_[name].value.f;
 
 		return true;
@@ -60,7 +60,7 @@ bool SymbolTable::GetFloat(std::string name, double &f) {
 }
 
 bool SymbolTable::GetInt(std::string name, long int &i) {
-	if (CheckExists(name) && entries_[name].type == ST_Int) {
+	if (CheckExists(name) && entries_[name].type == DT_Int) {
 		i = entries_[name].value.i;
 
 		return true;
@@ -79,7 +79,7 @@ bool SymbolTable::WasUsed(std::string name, bool &used) {
 	return false;
 }
 
-bool SymbolTable::GetType(std::string name, ST_Type &type) {
+bool SymbolTable::GetType(std::string name, DataType &type) {
 	if (CheckExists(name)) {
 		type = entries_[name].type;
 		return true;

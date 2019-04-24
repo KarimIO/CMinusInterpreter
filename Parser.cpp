@@ -18,8 +18,10 @@ string getTokenName(Token tok) {
 
 	case Let:
 		return "let";
-	case Number:
-		return "NUM";
+	case Int:
+		return "INT";
+	case Float:
+		return "FLOAT";
 	case String:
 		return "STRING";
 
@@ -145,9 +147,15 @@ void Parser::error(string expectedToken)
 	exit(0);
 }
 
-void Parser::semanticError(string errorMsg)
+void Parser::semanticError(string errorMsg, unsigned int line)
 {
-	OUTP << errorMsg << endl;
+	OUTP << "Semantic error on line " << line << ": " << errorMsg << endl;
+#ifndef PROJ_DEBUG
+	myfile.close();
+#else
+	system("pause");
+#endif
+	exit(0);
 }
 
 void Parser::parse()
@@ -195,11 +203,11 @@ void Parser::declaration()
 	if (tokenlist_[i].token_ == IntSpec || tokenlist_[i].token_ == FloatSpec)
 		varDeclaration();
 	else
-		stmt();
+		stmt(true);
 }
 void Parser::varDeclaration()
 {
-	ST_Type t = typeSpecifier();
+	DataType t = typeSpecifier();
 	if (tokenlist_[i].token_ == Identifier) {
 		std::string name = (const char *)tokenlist_[i].value_;
 		symboltable_.Add(name, t, tokenlist_[i].line_);
@@ -208,202 +216,258 @@ void Parser::varDeclaration()
 	match(Semicolon);
 }
 
-ST_Type Parser::typeSpecifier()
+DataType Parser::typeSpecifier()
 {
 	if (tokenlist_[i].token_ == IntSpec) {
 		match(IntSpec);
-		return ST_Int;
+		return DT_Int;
 	}
 	else if (tokenlist_[i].token_ == FloatSpec) {
 		match(FloatSpec);
-		return ST_Float;
+		return DT_Float;
 	}
 	else
 		error("\'int\' or \'float\'");
 }
 
-void Parser::stmtList()
+void Parser::stmtList(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Number || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
+	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 	{
-		stmt();
-		while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Number || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
+		stmt(exec);
+		while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 		{
-			stmt();
+			stmt(exec);
 		}
 
 	}
 }
-void Parser::stmt()
+void Parser::stmt(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Number || tokenlist_[i].token_ == Semicolon)
+	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon)
 	{
-		expressionStmt();
+		expressionStmt(exec);
 	}
 	else if (tokenlist_[i].token_ == IfWord)
 	{
-		selectionStmt();
+		selectionStmt(exec);
 	}
 	else if (tokenlist_[i].token_ == ReadWord)
 	{
-		readStmt();
+		readStmt(exec);
 	}
 	else if (tokenlist_[i].token_ == WriteWord)
 	{
-		writeStmt();
+		writeStmt(exec);
 	}
 	else if (tokenlist_[i].token_ == WhileWord)
 	{
-		iterationStmt();
+		iterationStmt(exec);
 	}
 	else
 		error("expression, selection, or iteration statement");
 }
 
-void Parser::readVar() {
-	if (tokenlist_[i].token_ == Identifier) {
-		std::string name = (const char *)tokenlist_[i].value_;
-		ST_Type type;
-		if (symboltable_.GetType(name, type)) {
-			std::string val;
-			std:cin >> val;
+void Parser::readVar(bool exec) {
+	unsigned int line = tokenlist_[i].line_;
 
-			if (type == ST_Float)
-				symboltable_.SetFloat(name, stod(val));
-			else
-				symboltable_.SetInt(name, stol(val));
+	if (exec) {
+		if (tokenlist_[i].token_ == Identifier) {
+			std::string name = (const char *)tokenlist_[i].value_;
+			DataType type;
+			if (symboltable_.GetType(name, type)) {
+				std::string val;
+				std:cin >> val;
+
+				if (type == DT_Float)
+					symboltable_.SetFloat(name, stod(val));
+				else
+					symboltable_.SetInt(name, stol(val));
+			}
+			else {
+				semanticError("Undefined variable", line);
+			}
+			++i;
 		}
 		else {
-			semanticError("Undefined variable on line " + tokenlist_[i].line_);
+			error(Identifier);
 		}
-		++i;
 	}
 	else {
-		error(Identifier);
+		match(Identifier);
 	}
 }
 
-void Parser::readStmt() {
+void Parser::readStmt(bool exec) {
 	match(ReadWord);
-	readVar();
+	readVar(exec);
 	while (tokenlist_[i].token_ == Comma) {
 		match(Comma);
-		readVar();
+		readVar(exec);
 	}
 	match(Semicolon);
 }
 
-void Parser::writeVar() {
-	if (tokenlist_[i].token_ == Identifier) {
-		std::string name = (const char *)tokenlist_[i].value_;
-		ST_Type type;
-		if (symboltable_.GetType(name, type)) {
-			if (type == ST_Float) {
-				double val;
-				symboltable_.GetFloat(name, val);
-				std::cout << val;
-			}
-			else {
-				long int val;
-				symboltable_.GetInt(name, val);
-				std::cout << val;
-			}
+void Parser::writeVar(bool exec) {
+	unsigned int line = tokenlist_[i].line_;
+
+	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int) {
+		if (exec) {
+			DataType t;
+			DataValue v;
+			expression(t, v);
+
+			if (t == DT_Float)	OUTP << v.f;
+			else				OUTP << v.i;
 		}
-		else {
-			semanticError("Undefined variable on line " + tokenlist_[i].line_);
-		}
-		++i;
+		else
+			expression();
 	}
 	else if (tokenlist_[i].token_ == String) {
-		std::string value = (const char *)tokenlist_[i].value_;
-		std::cout << value;
-		++i;
+		if (exec) {
+			std::string value = (const char *)tokenlist_[i].value_;
+			std::cout << value;
+			++i;
+		}
+		else
+			match(String);
 	}
 	else {
 		error("Expected Identifier or String");
 	}
 }
 
-void Parser::writeStmt() {
+void Parser::writeStmt(bool exec) {
 	match(WriteWord);
-	writeVar();
+	writeVar(exec);
 	while (tokenlist_[i].token_ == Comma) {
 		match(Comma);
-		writeVar();
+		writeVar(exec);
 	}
 	match(Semicolon);
 }
 
-void Parser::expressionStmt()
+void Parser::expressionStmt(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Number)
+	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int)
 	{
-		expression();
+		if (exec) {
+			DataType t;
+			DataValue v;
+			expression(t, v);
+		}
+		else
+			expression();
+
 		match(Semicolon);
 	}
 	else {
 		match(Semicolon);
 	}
 }
-void Parser::selectionStmt()
+void Parser::selectionStmt(bool exec)
 {
+	unsigned int line = tokenlist_[i].line_;
+
 	match(IfWord);
 	match(StartParenthesis);
-	expression();
+	DataType t;
+	DataValue v;
+
+	if (exec)	expression(t, v);
+	else		expression();
+
 	match(EndParenthesis);
-	stmt();
+
+	bool success = true;
+	if (exec) success = evaluateExpression(t, v);
+
+	stmt(exec && success);
 	if (tokenlist_[i].token_ == ElseWord)
 	{
 		match(ElseWord);
-		stmt();
+		stmt(exec && !success);
 	}
 }
-void Parser::iterationStmt()
+
+void Parser::iterationStmt(bool exec)
 {
 	match(WhileWord);
-	match(StartParenthesis);
-	expression();
-	match(EndParenthesis);
-	stmt();
+	unsigned int repeat_part = i;
+
+	bool success = true;
+
+	while (true) {
+		match(StartParenthesis);
+		if (exec) {
+			DataType t;
+			DataValue v;
+			expression(t, v);
+			success = evaluateExpression(t, v);
+		}
+		else {
+			expression();
+			success = true;
+		}
+		
+		match(EndParenthesis);
+
+		if (success) {
+			stmt(exec);
+			i = repeat_part;
+		}
+		else {
+			stmt(success && exec);
+			break;
+		}
+	}
+
 }
-void Parser::expression(string &exp_typ, int &val)
+
+bool Parser::evaluateExpression(DataType exp_typ, DataValue val) {
+	if (exp_typ != DT_Int) {
+		semanticError("Expressions in If conditions must be of type int", line);
+	}
+
+	return (val.i > 0);
+}
+
+void Parser::expression(DataType &exp_typ, DataValue &val)
 {
-	if (tokenlist_[i].token_ == Let)
+	unsigned int line = tokenlist_[i].line_;
+
+	DataType lt, rt;
+	DataValue lv, rv;
+
+	bool hasL = tokenlist_[i].token_ == Let;
+	std::string id = "";
+	if (hasL)
 	{
 		match(Let);
-		var(exp_typ, val);
+		if (tokenlist_[i].token_ == Identifier) {
+			id = (const char *)tokenlist_[i].value_;
+			var(lt, lv);
+		}
 		match(Assignment);
 	}
-	simpleExpression();
+
+	simpleExpression(rt, rv);
+
+	if (hasL) {
+		if (lt != rt) {
+			semanticError("Left hand type does not match right hand type", line);
+		}
+
+		if (lt == DT_Float)
+			symboltable_.SetFloat(id, rv.f);
+		else
+			symboltable_.SetInt(id, rv.i);
+	}
+
+	exp_typ = rt;
+	val = rv;
 }
-void Parser::var(string &exp_typ, int &val)
-{
-	// consult symbol table here
-	// enter(id.name, var.type)
-	match(Identifier);
-}
-void Parser::simpleExpression(string &exp_typ, int &val)
-{
-	string left_type, right_type;
-	//Declare local variable that will be used as parameters ("val" synthesized attributes) of the term function
-	int left_val, right_val;
-	string temp; // variable to keep the name of the temporary variable
-	// The BNF of expr is converted to EBNF to avoid the left recursion
-	additiveExpression(left_type, left_val); //term() will return type and value of term
-	// This loop is the check the types of the operands and evaluate the expression
-	if (tokenlist_[i].token_ == GtOp || tokenlist_[i].token_ == LtOp || tokenlist_[i].token_ == LteOp || tokenlist_[i].token_ == GteOp || tokenlist_[i].token_ == Equality || tokenlist_[i].token_ == NotEq)
-	{
-		relop();
-		additiveExpression(right_type, right_val);
-		// Check left and right operands types
-		if (right_type != left_type)
-			semanticError("Operand are not the same type");
-		// Compute the left and right operands and put the results in the variable left_val used to accumulate the results
-		left_val = left_val + right_val;
-	};
-	exp_typ = left_type;
-	val = left_val;
-}
+
 void Parser::expression()
 {
 	while (tokenlist_[i].token_ == Let)
@@ -414,10 +478,114 @@ void Parser::expression()
 	}
 	simpleExpression();
 }
+
+void Parser::var(DataType &exp_typ, DataValue &val)
+{
+	unsigned int line = tokenlist_[i].line_;
+
+	if (tokenlist_[i].token_ == Identifier) {
+		std::string name = (const char *)tokenlist_[i].value_;
+		if (symboltable_.GetType(name, exp_typ)) {
+			if (exp_typ == DT_Float) {
+				double v;
+				symboltable_.GetFloat(name, v);
+				val.f = v;
+			}
+			else {
+				long int v;
+				symboltable_.GetInt(name, v);
+				val.i = v;
+			}
+		}
+		else {
+			semanticError("Undefined variable", line);
+		}
+		++i;
+	}
+	else
+		error(Identifier);
+}
+
 void Parser::var()
 {
 	match(Identifier);
 }
+
+void Parser::simpleExpression(DataType &exp_typ, DataValue &val)
+{
+	unsigned int line = tokenlist_[i].line_;
+
+	DataType left_type, right_type;
+	//Declare local variable that will be used as parameters ("val" synthesized attributes) of the term function
+	DataValue left_val, right_val;
+	string temp; // variable to keep the name of the temporary variable
+	// The BNF of expr is converted to EBNF to avoid the left recursion
+	additiveExpression(left_type, left_val); //term() will return type and value of term
+	// This loop is the check the types of the operands and evaluate the expression
+	if (tokenlist_[i].token_ == GtOp || tokenlist_[i].token_ == LtOp || tokenlist_[i].token_ == LteOp || tokenlist_[i].token_ == GteOp || tokenlist_[i].token_ == Equality || tokenlist_[i].token_ == NotEq)
+	{
+		Token t = tokenlist_[i].token_;
+
+		relop();
+		additiveExpression(right_type, right_val);
+		// Check left and right operands types
+		if (right_type != left_type)
+			semanticError("Operands are not the same type", line);
+		// Compute the left and right operands and put the results in the variable left_val used to accumulate the results
+		if (left_type == DT_Float) {
+			switch (t) {
+			case GtOp:
+				left_val.i = left_val.f > right_val.f;
+				break;
+			case LtOp:
+				left_val.i = left_val.f < right_val.f;
+				break;
+			case LteOp:
+				left_val.i = left_val.f <= right_val.f;
+				break;
+			case GteOp:
+				left_val.i = left_val.f >= right_val.f;
+				break;
+			case Equality:
+				left_val.i = left_val.f == right_val.f;
+				break;
+			case NotEq:
+				left_val.i = left_val.f != right_val.f;
+				break;
+			}
+		}
+		else {
+			switch (t) {
+			case GtOp:
+				left_val.i = left_val.i > right_val.i;
+				break;
+			case LtOp:
+				left_val.i = left_val.i < right_val.i;
+				break;
+			case LteOp:
+				left_val.i = left_val.i <= right_val.i;
+				break;
+			case GteOp:
+				left_val.i = left_val.i >= right_val.i;
+				break;
+			case Equality:
+				left_val.i = left_val.i == right_val.i;
+				break;
+			case NotEq:
+				left_val.i = left_val.i != right_val.i;
+				break;
+			}
+		}
+
+		exp_typ = DT_Int;
+		val = left_val;
+	}
+	else {
+		exp_typ = left_type;
+		val = left_val;
+	}
+}
+
 void Parser::simpleExpression()
 {
 	additiveExpression();
@@ -427,45 +595,44 @@ void Parser::simpleExpression()
 		additiveExpression();
 	}
 }
-void Parser::relop()
+
+void Parser::additiveExpression(DataType &exp_typ, DataValue &val)
 {
-	if (tokenlist_[i].token_ == GtOp)
-		match(GtOp);
-	else if (tokenlist_[i].token_ == LtOp)
-		match(LtOp);
-	else if (tokenlist_[i].token_ == LteOp)
-		match(LteOp);
-	else if (tokenlist_[i].token_ == GteOp)
-		match(GteOp);
-	else if (tokenlist_[i].token_ == Equality)
-		match(Equality);
-	else if (tokenlist_[i].token_ == NotEq)
-		match(NotEq);
-	else
-		error("\'<=\' or \'<\' or \'>\' or \'<=\' or \'==\' or \'!=\'");
-}
-void Parser::additiveExpression(string &exp_typ, int &val)
-{
+	unsigned int line = tokenlist_[i].line_;
+
 	//Declare local variable that will be used as parameters ("type" synthesized attributes) of the term function
-	string left_type, right_type;
+	DataType left_type, right_type;
 	//Declare local variable that will be used as parameters ("val" synthesized attributes) of the term function
-	int left_val, right_val;
+	DataValue left_val, right_val;
 	string temp; // variable to keep the name of the temporary variable
 	// The BNF of expr is converted to EBNF to avoid the left recursion
 	term(left_type, left_val); //term() will return type and value of term
 	// This loop is the check the types of the operands and evaluate the expression
 	while (tokenlist_[i].token_ == PlusOp || tokenlist_[i].token_ == MinusOp) {
+		bool isPlus = tokenlist_[i].token_ == PlusOp;
 		addOp();
 		term(right_type, right_val);
 		// Check left and right operands types
 		if (right_type != left_type)
-			semanticError("Operand are not the same type");
+			semanticError("Operand are not the same type", line);
 		// Compute the left and right operands and put the results in the variable left_val used to accumulate the results
-		left_val = left_val + right_val;
+		if (left_type == DT_Float) {
+			if (isPlus)
+				left_val.f = left_val.f + right_val.f;
+			else
+				left_val.f = left_val.f - right_val.f;
+		}
+		else {
+			if (isPlus)
+				left_val.i = left_val.i + right_val.i;
+			else
+				left_val.i = left_val.i - right_val.i;
+		}
 	};
 	exp_typ = left_type;
 	val = left_val;
 }
+
 void Parser::additiveExpression()
 {
 	term();
@@ -475,37 +642,44 @@ void Parser::additiveExpression()
 		term();
 	}
 }
-void Parser::addOp()
+
+void Parser::term(DataType &exp_typ, DataValue &val)
 {
-	if (tokenlist_[i].token_ == PlusOp)
-		match(PlusOp);
-	else if (tokenlist_[i].token_ == MinusOp)
-		match(MinusOp);
-	else
-		error("\'+\' or \'-\'");
-}
-void Parser::term(string &exp_typ, int &val)
-{
+	unsigned int line = tokenlist_[i].line_;
+
 	//Declare local variable that will be used as parameters ("type" synthesized attributes) of the term function
-	string left_type, right_type;
+	DataType left_type, right_type;
 	//Declare local variable that will be used as parameters ("val" synthesized attributes) of the term function
-	int left_val, right_val;
+	DataValue left_val, right_val;
 	string temp; // variable to keep the name of the temporary variable
 	// The BNF of expr is converted to EBNF to avoid the left recursion
 	factor(left_type, left_val); //term() will return type and value of term
 	// This loop is the check the types of the operands and evaluate the expression
 	while (tokenlist_[i].token_ == MultiplyOp || tokenlist_[i].token_ == DivideOp) {
+		bool isMul = tokenlist_[i].token_ == MultiplyOp;
 		mulOp();
 		factor(right_type, right_val);
 		// Check left and right operands types
 		if (right_type != left_type)
-			semanticError("Operand are not the same type");
+			semanticError("Operand are not the same type", line);
 		// Compute the left and right operands and put the results in the variable left_val used to accumulate the results
-		left_val = left_val + right_val;
+		if (left_type == DT_Float) {
+			if (isMul)
+				left_val.f = left_val.f * right_val.f;
+			else
+				left_val.f = left_val.f / right_val.f;
+		}
+		else {
+			if (isMul)
+				left_val.f = left_val.i * right_val.i;
+			else
+				left_val.f = left_val.i / right_val.i;
+		}
 	};
 	exp_typ = left_type;
 	val = left_val;
 }
+
 void Parser::term()
 {
 	factor();
@@ -515,16 +689,8 @@ void Parser::term()
 		factor();
 	}
 }
-void Parser::mulOp()
-{
-	if (tokenlist_[i].token_ == MultiplyOp)
-		match(MultiplyOp);
-	else if (tokenlist_[i].token_ == DivideOp)
-		match(DivideOp);
-	else
-		error("* or /");
-}
-void Parser::factor(string &exp_typ, int &val)
+
+void Parser::factor(DataType &exp_typ, DataValue &val)
 {
 	if (tokenlist_[i].token_ == StartParenthesis)
 	{
@@ -533,11 +699,17 @@ void Parser::factor(string &exp_typ, int &val)
 		expression(exp_typ, val);
 		match(EndParenthesis);
 	}
-	else if (tokenlist_[i].token_ == Number)
+	else if (tokenlist_[i].token_ == Float)
 	{
-		// exp_type and val should be assigned here to sth 
-		//factor.val = num.val
-		match(Number);
+		exp_typ = DT_Float;
+		val.f = *(double *)tokenlist_[i].value_;
+		match(Float);
+	}
+	else if (tokenlist_[i].token_ == Int)
+	{
+		exp_typ = DT_Int;
+		val.i = *(long int *)tokenlist_[i].value_;
+		match(Int);
 	}
 	else if (tokenlist_[i].token_ == Identifier)
 	{
@@ -555,9 +727,13 @@ void Parser::factor()
 		expression();
 		match(EndParenthesis);
 	}
-	else if (tokenlist_[i].token_ == Number)
+	else if (tokenlist_[i].token_ == Float)
 	{
-		match(Number);
+		match(Float);
+	}
+	else if (tokenlist_[i].token_ == Int)
+	{
+		match(Int);
 	}
 	else if (tokenlist_[i].token_ == Identifier)
 	{
@@ -565,4 +741,42 @@ void Parser::factor()
 	}
 	else
 		error("expression starts with ( or NUM or ID");
+}
+
+void Parser::relop()
+{
+	if (tokenlist_[i].token_ == GtOp)
+		match(GtOp);
+	else if (tokenlist_[i].token_ == LtOp)
+		match(LtOp);
+	else if (tokenlist_[i].token_ == LteOp)
+		match(LteOp);
+	else if (tokenlist_[i].token_ == GteOp)
+		match(GteOp);
+	else if (tokenlist_[i].token_ == Equality)
+		match(Equality);
+	else if (tokenlist_[i].token_ == NotEq)
+		match(NotEq);
+	else
+		error("\'<=\' or \'<\' or \'>\' or \'<=\' or \'==\' or \'!=\'");
+}
+
+void Parser::addOp()
+{
+	if (tokenlist_[i].token_ == PlusOp)
+		match(PlusOp);
+	else if (tokenlist_[i].token_ == MinusOp)
+		match(MinusOp);
+	else
+		error("\'+\' or \'-\'");
+}
+
+void Parser::mulOp()
+{
+	if (tokenlist_[i].token_ == MultiplyOp)
+		match(MultiplyOp);
+	else if (tokenlist_[i].token_ == DivideOp)
+		match(DivideOp);
+	else
+		error("* or /");
 }

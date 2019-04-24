@@ -10,6 +10,8 @@
 
 using namespace std;
 
+typedef union { double f; long int i; } DataValue;
+
 class Parser
 {
 private:
@@ -23,7 +25,7 @@ private:
 	void match(Token);
 	void error(Token);
 	void error(string);
-	void semanticError(string errorMsg);
+	void semanticError(string errorMsg, unsigned int line);
 	//void semanticError(string errorMsg);
 	void parse();
 
@@ -31,41 +33,46 @@ private:
 	void declarationList();
 	void declaration();
 	void varDeclaration();
-	ST_Type typeSpecifier();
-	void readVar();
-	void readStmt();
-	void writeVar();
-	void writeStmt();
+	DataType typeSpecifier();
+	void readVar(bool exec);
+	void readStmt(bool exec);
+	void writeVar(bool exec);
+	void writeStmt(bool exec);
 	/*void funDeclaration();
 	void params();
 	void paramList();
 	void param();
 	void compoundStmt();
 	void localDeclaration();*/
-	void stmtList();
-	void stmt();
-	//void expression(string & exp_typ, int & val);
-	void expressionStmt();
-	void selectionStmt();
-	void iterationStmt();
-	void expression(string & exp_typ, int & val);
-	void var(string & exp_typ, int & val);
-	void simpleExpression(string & exp_typ, int & val);
+	void stmtList(bool exec);
+	void stmt(bool exec);
+	void expressionStmt(bool exec);
+	void selectionStmt(bool exec);
+	void iterationStmt(bool exec);
+
+	bool evaluateExpression(DataType exp_typ, DataValue val);
+
+	void expression(DataType &exp_typ, DataValue & val);
 	void expression();
+
+	void var(DataType &exp_typ, DataValue & val);
 	void var();
+
+	void simpleExpression(DataType &exp_typ, DataValue & val);
 	void simpleExpression();
-	void relop();
-	void additiveExpression(string & exp_typ, int & val);
+
+	void additiveExpression(DataType &exp_typ, DataValue & val);
 	void additiveExpression();
-	void addOp();
-	void term(string & exp_typ, int & val);
+
+	void term(DataType &exp_typ, DataValue & val);
 	void term();
-	void mulOp();
-	void factor(string & exp_typ, int & val);
+
+	void factor(DataType &exp_typ, DataValue & val);
 	void factor();
-	/*void call();
-	void args();
-	void argList();*/
+
+	void mulOp();
+	void addOp();
+	void relop();
 
 private:
 	SymbolTable symboltable_;

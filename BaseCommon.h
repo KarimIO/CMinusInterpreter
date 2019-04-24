@@ -3,12 +3,18 @@
 #include <string>
 #include <vector>
 
+enum DataType {
+	DT_Float = 0,
+	DT_Int
+};
+
 enum Token {
 	Invalid,
 	EndOfFile,
 
 	Let,
-	Number,
+	Float,
+	Int,
 	String,
 
 	PlusOp,

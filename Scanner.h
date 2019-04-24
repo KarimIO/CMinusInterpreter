@@ -25,7 +25,7 @@ private:
 
 	Token readToken();
 	void readString(char delimeter);
-	void readNumber();
+	Token readNumber();
 	void printTVP(TokenValuePair &token);
 	bool testKeyword(std::string str);
 	void readLineComment();

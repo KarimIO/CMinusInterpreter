@@ -36,8 +36,11 @@ void Scanner::run() {
 		else if (token == Token::EndOfFile) {
 			break;
 		}
-		else if (token == Token::Number) {
+		else if (token == Token::Float) {
 			p.value_ = new double(number_);
+		}
+		else if (token == Token::Int) {
+			p.value_ = new long int(number_);
 		}
 		else if (token == Token::Identifier || token == Token::String) {
 			int s = string_.size() + 1;
@@ -166,8 +169,7 @@ Token Scanner::readToken() {
 	}
 
 	if (c == '.' || (c >= '0' && c <= '9')) {
-		readNumber();
-		return Token::Number;
+		return readNumber();
 	}
 
 	if (isalpha(c)) {
@@ -280,7 +282,7 @@ void Scanner::readString(char delimeter) {
 	throw std::runtime_error("Unended string.");
 }
 
-void Scanner::readNumber() {
+Token Scanner::readNumber() {
 	bool digit = false;
 	bool point = false;
 	unsigned divide = 1;
@@ -311,7 +313,7 @@ void Scanner::readNumber() {
 
 	if (digit) {
 		number_ /= divide;
-		return;
+		return point ? Token::Float : Token::Int;
 	}
 
 	throw std::runtime_error("Unexpected character in number.");
@@ -327,8 +329,10 @@ void Scanner::printTVP(TokenValuePair &tvp) {
 		printf("Invalid\n");
 	else if (token == Token::EndOfFile)
 		printf("End of file\n");
-	else if (token == Token::Number)
-		printf("%.2f\n", *((double *)value));
+	else if (token == Token::Int)
+		printf("INT: [%.0f]\n", *((double *)value));
+	else if (token == Token::Float)
+		printf("FLOAT: [%.2f]\n", *((double *)value));
 	else if (token == Token::PlusOp)
 		printf("ADD\n");
 	else if (token == Token::MinusOp)
