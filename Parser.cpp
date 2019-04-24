@@ -246,16 +246,12 @@ void Parser::compoundStmt(bool exec)
 
 void Parser::stmtList(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
+	while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 	{
 		stmt(exec);
-		while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
-		{
-			stmt(exec);
-		}
-
 	}
 }
+
 void Parser::stmt(bool exec)
 {
 	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon)
