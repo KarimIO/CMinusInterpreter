@@ -1,19 +1,25 @@
 int x;
-let x = 2;
 float y;
-let y = -2.0;
-while ((y < 0.0) + (y >= 10.0)) {
-	write "Please input a value such that (0.0 <= y < 10.0): ";
-	read y;
-}
-write "Value + 2 = ", y + 2.0, "\n";
-write "\n================\n\n";
+{
+	let x = 2;
+	let y = -2.0;
+	while ((y < 0.0) + (y >= 10.0)) {
+		write "Please input a value such that (0.0 <= y < 10.0): ";
+		read y;
+	}
+	write "Value + 2 = ", y + 2.0, "\n";
+	write "\n----------------\n";
 
-while (x < 5) {
-	if (x == 3)
-		write "x == 3: x = ", x, "\n";
-	else
-		write "x != 3: x = ", x, "\n";
+	while (x < 5) {
+		if (x == 3)
+			write "x == 3: x = ", x, "\n";
+		else
+			write "x != 3: x = ", x, "\n";
 
-	let x = x + 1;
+		let x = x + 1;
+	}
+
+	write "\n================\n\n";
 }
+
+int z; {write "Give me a Z: "; read z; write "MY Z: ", z, "\n\n\n";}

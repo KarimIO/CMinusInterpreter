@@ -190,15 +190,17 @@ void Parser::parse()
 
 void Parser::program() // program = declaration_list
 {
-	// TODO: Call declaration_list() which is grammer 
-	declarationList();
+	do {
+		declarationList();
+		compoundStmt(true);
+	} while (tokenlist_[i].token_ != EndOfFile);
 }
 
-void Parser::declarationList()
-{
-	declaration();
-	while (tokenlist_[i].token_ != EndOfFile)
-	{
+void Parser::declarationList() {
+	if (tokenlist_[i].token_ != IntSpec && tokenlist_[i].token_ != FloatSpec)
+		error("Expected a declaration: Int or Float");
+
+	while (tokenlist_[i].token_ == IntSpec || tokenlist_[i].token_ == FloatSpec) {
 		declaration();
 	}
 }
@@ -207,9 +209,8 @@ void Parser::declaration()
 {
 	if (tokenlist_[i].token_ == IntSpec || tokenlist_[i].token_ == FloatSpec)
 		varDeclaration();
-	else
-		stmt(true);
 }
+
 void Parser::varDeclaration()
 {
 	DataType t = typeSpecifier();
@@ -235,14 +236,12 @@ DataType Parser::typeSpecifier()
 		error("\'int\' or \'float\'");
 }
 
-#ifdef HAS_COMPOUND
 void Parser::compoundStmt(bool exec)
 {
 	match(StartCurlyBracket);
 	stmtList(exec);
 	match(EndCurlyBracket);
 }
-#endif
 
 void Parser::stmtList(bool exec)
 {
@@ -258,12 +257,10 @@ void Parser::stmt(bool exec)
 	{
 		expressionStmt(exec);
 	}
-#ifdef HAS_COMPOUND
 	else if (tokenlist_[i].token_ == StartCurlyBracket)
 	{
 		compoundStmt(exec);
 	}
-#endif
 	else if (tokenlist_[i].token_ == IfWord)
 	{
 		selectionStmt(exec);
