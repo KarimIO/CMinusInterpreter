@@ -12,14 +12,16 @@ void SymbolTable::Add(std::string name, DataType type, unsigned int line) {
 	s.line = line;
 }
 
-void SymbolTable::Print(std::ostream &o) {
+void SymbolTable::Print(std::ostream &myfile) {
 	for (SymbolTableEntry::iterator it = entries_.begin(); it != entries_.end(); ++it) {
 		SymbolTableValue &s = it->second;
-		o << it->first << " (" << s.line;
-		if (s.type == DT_Float)
-			o << ") [float]: " << s.value.f << std::endl;
-		else
-			o << ") [ int ]: " << s.value.i << std::endl;
+		OUTPUT(it->first << " (" << s.line);
+		if (s.type == DT_Float) {
+			OUTPUT(") [float]: " << s.value.f << std::endl);
+		}
+		else {
+			OUTPUT(") [ int ]: " << s.value.i << std::endl);
+		}
 	}
 }
 

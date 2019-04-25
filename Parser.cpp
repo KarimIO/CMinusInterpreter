@@ -2,13 +2,6 @@
 #include <iostream>
 #include <fstream>
 
-// Set PROJ_DEBUG in your compiler settings to output to cout instead of myfile
-#ifdef PROJ_DEBUG
-#define OUTP std::cout
-#else
-#define OUTP myfile
-#endif
-
 string getTokenName(Token tok) {
 	switch (tok) {
 	case Invalid:
@@ -143,29 +136,20 @@ void Parser::error(Token expectedToken)
 void Parser::error(string expectedToken)
 {
 	++num_errors_;
-	OUTP << "Parsing Failed at Line: " << tokenlist_[i].line_ << ": unexpected \'" << getTokenName(tokenlist_[i].token_) << "\', expecting " << expectedToken << "\n";
-#ifndef PROJ_DEBUG
+	OUTPUT("Parsing Failed at Line: " << tokenlist_[i].line_ << ": unexpected \'" << getTokenName(tokenlist_[i].token_) << "\', expecting " << expectedToken << "\n");
 	myfile.close();
-#else
-	system("pause");
-#endif
 	exit(0);
 }
 
 void Parser::semanticError(string errorMsg, unsigned int line)
 {
-	OUTP << "Semantic error on line " << line << ": " << errorMsg << endl;
-#ifndef PROJ_DEBUG
+	OUTPUT("Semantic error on line " << line << ": " << errorMsg << endl);
 	myfile.close();
-#else
-	system("pause");
-#endif
 	exit(0);
 }
 
 void Parser::parse()
 {
-#ifndef PROJ_DEBUG
 	myfile.open(output_filepath);
 	if (myfile.fail()) {
 		printf("Unable to open file: File doesn't exist.\n");
@@ -173,19 +157,16 @@ void Parser::parse()
 	}
 
 	myfile.clear();
-#endif
 
 	num_errors_ = 0;
 	program();
 	if (num_errors_ == 0) {
-		OUTP << "\n\n===========================\nParsing Successful - Symbol Table:\n---------------------------\n";
-		symboltable_.Print(OUTP);
-		OUTP << "---------------------------\n";
+		OUTPUT("\n\n===========================\nParsing Successful - Symbol Table:\n---------------------------\n");
+		symboltable_.Print(myfile);
+		OUTPUT("---------------------------\n");
 	}
 
-#ifndef PROJ_DEBUG
 	myfile.close();
-#endif
 }
 
 void Parser::program() // program = declaration_list
@@ -290,7 +271,8 @@ void Parser::readVar(bool exec) {
 			DataType type;
 			if (symboltable_.GetType(name, type)) {
 				std::string val;
-				std:cin >> val;
+				std::cin >> val;
+				myfile << val << "\n";
 
 				if (type == DT_Float)
 					symboltable_.SetFloat(name, stod(val));
@@ -330,8 +312,12 @@ void Parser::writeVar(bool exec) {
 			DataValue v;
 			expression(t, v);
 
-			if (t == DT_Float)	OUTP << v.f;
-			else				OUTP << v.i;
+			if (t == DT_Float) {
+				OUTPUT(v.f);
+			}
+			else {
+				OUTPUT(v.i);
+			}
 		}
 		else
 			expression();
@@ -339,7 +325,7 @@ void Parser::writeVar(bool exec) {
 	else if (tokenlist_[i].token_ == String) {
 		if (exec) {
 			std::string value = (const char *)tokenlist_[i].value_;
-			std::cout << value;
+			OUTPUT(value);
 			++i;
 		}
 		else

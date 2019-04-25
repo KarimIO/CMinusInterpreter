@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#define OUTPUT(a) std::cout << a; myfile << a;
+
 enum DataType {
 	DT_Float = 0,
 	DT_Int
