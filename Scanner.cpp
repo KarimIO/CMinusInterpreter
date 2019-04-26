@@ -186,6 +186,7 @@ Token Scanner::readToken() {
 		if (testKeyword("return")) return Token::ReturnWord;
 		if (testKeyword("float")) return Token::FloatSpec;
 		if (testKeyword("while")) return Token::WhileWord;
+		if (testKeyword("program")) return Token::ProgramWord;
 
 		// If not a keyword read identifier
 		readIdentifier();
@@ -216,7 +217,6 @@ bool Scanner::testKeyword(std::string str) {
 	return true;
 }
 
-// TODO: Handle Escaping
 void Scanner::readString(char delimeter) {
 	++current_;
 	++curoffset_;
@@ -272,11 +272,8 @@ void Scanner::readString(char delimeter) {
 			++current_;
 			++curoffset_;
 		}
-		else {
-			// TODO: Check for escape character.
-			if (c == delimeter) {
-				return;
-			}
+		else if (c == delimeter) {
+			return;
 		}
 
 		string_ += c;
@@ -404,6 +401,8 @@ void Scanner::printTVP(TokenValuePair &tvp) {
 		printf(",\n");
 	else if (token == Token::Semicolon)
 		printf(";\n");
+	else if (token == Token::ProgramWord)
+		printf("PROGRAM\n");
 	else
 		std::cout << "UNKNOWN\n";
 }

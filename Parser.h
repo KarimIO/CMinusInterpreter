@@ -45,7 +45,6 @@ private:
 	void param();
 	void compoundStmt();
 	void localDeclaration();*/
-	void stmtList(bool exec);
 	void stmt(bool exec);
 	void expressionStmt(bool exec);
 	void selectionStmt(bool exec);
@@ -58,9 +57,6 @@ private:
 
 	void var(DataType &exp_typ, DataValue & val);
 	void var();
-
-	void simpleExpression(DataType &exp_typ, DataValue & val);
-	void simpleExpression();
 
 	void additiveExpression(DataType &exp_typ, DataValue & val);
 	void additiveExpression();

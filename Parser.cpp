@@ -58,6 +58,8 @@ string getTokenName(Token tok) {
 		return "while";
 	case ReturnWord:
 		return "return";
+	case ProgramWord:
+		return "program";
 
 	case Identifier:
 		return "ID";
@@ -136,7 +138,7 @@ void Parser::error(Token expectedToken)
 void Parser::error(string expectedToken)
 {
 	++num_errors_;
-	OUTPUT("Parsing Failed at Line: " << tokenlist_[i].line_ << ": unexpected \'" << getTokenName(tokenlist_[i].token_) << "\', expecting " << expectedToken << "\n");
+	OUTPUT("Parsing Failed at Line: " << tokenlist_[i].line_ << ", char: " << tokenlist_[i].offset_ << ": unexpected \'" << getTokenName(tokenlist_[i].token_) << "\', expecting " << expectedToken << "\n");
 	myfile.close();
 	exit(0);
 }
@@ -171,10 +173,18 @@ void Parser::parse()
 
 void Parser::program() // program = declaration_list
 {
-	do {
-		declarationList();
-		compoundStmt(true);
-	} while (tokenlist_[i].token_ != EndOfFile);
+	if (tokenlist_[i].token_ != ProgramWord) {
+		error("a program identifier, ie: program MyProgramID;");
+	}
+
+	match(ProgramWord);
+	match(Identifier);
+	match(Semicolon);
+
+	declarationList();
+	compoundStmt(true);
+
+	match(EndOfFile);
 }
 
 void Parser::declarationList() {
@@ -220,16 +230,11 @@ DataType Parser::typeSpecifier()
 void Parser::compoundStmt(bool exec)
 {
 	match(StartCurlyBracket);
-	stmtList(exec);
-	match(EndCurlyBracket);
-}
-
-void Parser::stmtList(bool exec)
-{
 	while (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == WriteWord || tokenlist_[i].token_ == ReadWord || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int || tokenlist_[i].token_ == Semicolon || tokenlist_[i].token_ == StartCurlyBracket || tokenlist_[i].token_ == IfWord || tokenlist_[i].token_ == WhileWord || tokenlist_[i].token_ == ReturnWord)
 	{
 		stmt(exec);
 	}
+	match(EndCurlyBracket);
 }
 
 void Parser::stmt(bool exec)
@@ -262,6 +267,7 @@ void Parser::stmt(bool exec)
 		error("expression, selection, or iteration statement");
 }
 
+// This is a seperate function, but not its own production rule
 void Parser::readVar(bool exec) {
 	unsigned int line = tokenlist_[i].line_;
 
@@ -348,22 +354,45 @@ void Parser::writeStmt(bool exec) {
 
 void Parser::expressionStmt(bool exec)
 {
-	if (tokenlist_[i].token_ == Let || tokenlist_[i].token_ == StartParenthesis || tokenlist_[i].token_ == Identifier || tokenlist_[i].token_ == Float || tokenlist_[i].token_ == Int)
-	{
-		if (exec) {
-			DataType t;
-			DataValue v;
-			expression(t, v);
+	if (exec) {
+		unsigned int line = tokenlist_[i].line_;
+
+		DataType lt, rt;
+		DataValue lv, rv;
+
+		std::string id = "";
+		match(Let);
+		if (tokenlist_[i].token_ == Identifier) {
+			id = (const char *)tokenlist_[i].value_;
+			var(lt, lv);
 		}
 		else
-			expression();
+			error(Identifier);
+
+		match(Assignment);
+
+		expression(rt, rv);
+
+		if (lt != rt) {
+			semanticError("Left hand type does not match right hand type", line);
+		}
+
+		if (lt == DT_Float)
+			symboltable_.SetFloat(id, rv.f);
+		else
+			symboltable_.SetInt(id, rv.i);
 
 		match(Semicolon);
 	}
 	else {
+		match(Let);
+		var();
+		match(Assignment);
+		expression();
 		match(Semicolon);
 	}
 }
+
 void Parser::selectionStmt(bool exec)
 {
 	unsigned int line = tokenlist_[i].line_;
@@ -431,53 +460,6 @@ bool Parser::evaluateExpression(DataType exp_typ, DataValue val) {
 	return (val.i != 0);
 }
 
-void Parser::expression(DataType &exp_typ, DataValue &val)
-{
-	unsigned int line = tokenlist_[i].line_;
-
-	DataType lt, rt;
-	DataValue lv, rv;
-
-	bool hasL = tokenlist_[i].token_ == Let;
-	std::string id = "";
-	if (hasL)
-	{
-		match(Let);
-		if (tokenlist_[i].token_ == Identifier) {
-			id = (const char *)tokenlist_[i].value_;
-			var(lt, lv);
-		}
-		match(Assignment);
-	}
-
-	simpleExpression(rt, rv);
-
-	if (hasL) {
-		if (lt != rt) {
-			semanticError("Left hand type does not match right hand type", line);
-		}
-
-		if (lt == DT_Float)
-			symboltable_.SetFloat(id, rv.f);
-		else
-			symboltable_.SetInt(id, rv.i);
-	}
-
-	exp_typ = rt;
-	val = rv;
-}
-
-void Parser::expression()
-{
-	while (tokenlist_[i].token_ == Let)
-	{
-		match(Let);
-		var();
-		match(Assignment);
-	}
-	simpleExpression();
-}
-
 void Parser::var(DataType &exp_typ, DataValue &val)
 {
 	unsigned int line = tokenlist_[i].line_;
@@ -510,7 +492,7 @@ void Parser::var()
 	match(Identifier);
 }
 
-void Parser::simpleExpression(DataType &exp_typ, DataValue &val)
+void Parser::expression(DataType &exp_typ, DataValue &val)
 {
 	unsigned int line = tokenlist_[i].line_;
 
@@ -585,7 +567,7 @@ void Parser::simpleExpression(DataType &exp_typ, DataValue &val)
 	}
 }
 
-void Parser::simpleExpression()
+void Parser::expression()
 {
 	additiveExpression();
 	if (tokenlist_[i].token_ == GtOp || tokenlist_[i].token_ == LtOp || tokenlist_[i].token_ == LteOp || tokenlist_[i].token_ == GteOp || tokenlist_[i].token_ == Equality || tokenlist_[i].token_ == NotEq)

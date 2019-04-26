@@ -34,6 +34,7 @@ enum Token {
 	IntSpec,
 	FloatSpec,
 
+	ProgramWord,
 	IfWord,
 	ElseWord,
 	WhileWord,

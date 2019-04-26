@@ -1,3 +1,5 @@
+program MyProg;
+
 int x;
 float y;
 {
@@ -21,5 +23,3 @@ float y;
 
 	write "\n================\n\n";
 }
-
-int z; {write "Give me a Z: "; read z; write "MY Z: ", z, "\n\n\n";}
